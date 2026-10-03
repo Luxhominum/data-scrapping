@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shopee Scraper Studio — Product & Review Comment Intelligence</title>
+  
+  <!-- Typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <!-- Phosphor Icons -->
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+  <!-- Studio Styles -->
+  <link rel="stylesheet" href="/static/shopee.css">
+</head>
+<body>
+
+  <!-- Top Sticky Header -->
+  <header class="app-header">
+    <div class="header-inner">
+      <div class="brand">
+        <div class="brand-icon">
+          <i class="ph ph-shopping-bag"></i>
+        </div>
+        <div class="brand-info">
+          <h1>Shopee Scraper Studio <span class="brand-badge">v2.0 PRO</span></h1>
+          <div class="brand-subtitle">High-Velocity Product Listing & Review Comment Extractor</div>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <div class="status-pill">
+          <span class="status-dot"></span>
+          <span>Engine Online</span>
+        </div>
+        <button id="btnLoadSample" class="btn-secondary" title="Load sample dataset for immediate testing">
+          <i class="ph ph-database"></i> Load Sample Data
+        </button>
+        <a href="/" class="btn-secondary">
+          <i class="ph ph-squares-four"></i> Actor Platform
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main class="app-container">
+    
+    <!-- Hero Scraping Console -->
+    <section class="hero-card">
+      <div class="hero-header">
+        <h2 class="hero-title">Extract Customer Reviews by Product URL</h2>
+        <p class="hero-desc">Paste any Shopee product link to scrape full customer reviews, star ratings, purchaser variations, seller responses, and attached media.</p>
+      </div>
+
+      <div class="input-console">
+        <div class="url-input-group">
+          <div class="url-input-wrapper">
+            <i class="ph ph-link url-icon"></i>
+            <input 
+              type="text" 
+              id="shopeeUrlInput" 
+              class="url-input" 
+              placeholder="https://shopee.co.id/product-name-i.12345.67890" 
+              value="https://shopee.co.id/Machenike-K500-Tri-Mode-Wireless-Mechanical-Keyboard-i.3920184.2847192831"
+            >
+          </div>
+          <button id="btnStartScrape" class="btn-primary">
+            <i class="ph ph-play"></i> Start Live Scraping
+          </button>
+        </div>
+
+        <!-- Advanced Execution Controls -->
+        <div class="control-options">
+          <div class="option-item">
+            <label class="option-label">Review Limit</label>
+            <select id="reviewLimitSelect" class="option-select">
+              <option value="30">30 Reviews</option>
+              <option value="50" selected>50 Reviews</option>
+              <option value="100">100 Reviews</option>
+              <option value="300">300 Reviews</option>
+              <option value="0">All Available (No Cap)</option>
+            </select>
+          </div>
+
+          <div class="option-item">
+            <label class="option-label">Extraction Strategy</label>
+            <label class="option-toggle">
+              <input type="checkbox" id="allStarsToggle">
+              <span>Filter by each Star Rating (5★ → 1★)</span>
+            </label>
+          </div>
+
+          <div class="option-item">
+            <label class="option-label">Limit Per Star Rating</label>
+            <input type="number" id="starLimitInput" class="option-input" value="10" min="1" max="100">
+          </div>
+        </div>
+
+        <!-- Optional Cookie Input for Instant Scraping -->
+        <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.06);">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+            <label class="option-label" style="display: flex; align-items: center; gap: 0.4rem; color: #a1a1aa;">
+              <i class="ph ph-cookie" style="color: #EE4D2D;"></i> Shopee Session Cookie <span style="font-size: 0.75rem; color: #71717a;">(Optional - for instant 1-second scraping without opening any browser)</span>
+            </label>
+            <span style="font-size: 0.75rem; color: #71717a;">Paste cookie from Brave (F12 → Console: <code>document.cookie</code>)</span>
+          </div>
+          <input 
+            type="text" 
+            id="shopeeCookieInput" 
+            class="url-input" 
+            style="font-size: 0.82rem; font-family: monospace; padding: 0.5rem 0.8rem; background: rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.08);" 
+            placeholder="SPC_SI=...; SPC_F=...; SPC_U=... (Paste here or leave blank to use browser automation)"
+          >
+        </div>
+      </div>
+    </section>
+
+    <!-- CAPTCHA Notification Banner (Dynamic) -->
+    <div id="captchaBanner" class="captcha-alert" style="display: none;">
+      <div>
+        <i class="ph ph-shield-warning" style="font-size: 1.25rem; margin-right: 0.5rem;"></i>
+        <strong>Shopee Security Verification Detected:</strong> Please switch to the opened Google Chrome window, complete the slider/login challenge, and the scraper will resume automatically.
+      </div>
+    </div>
+
+    <!-- Bento Overview Grid (Product Meta & Rating Analytics) -->
+    <section class="bento-grid">
+      
+      <!-- Product Details Bento Card -->
+      <div id="productOverviewCard" class="bento-card">
+        <div class="bento-title">
+          <i class="ph ph-cube"></i> Product Metadata
+        </div>
+        <div class="product-meta-content">
+          <img id="productThumbnail" src="https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=300&auto=format&fit=crop&q=60" alt="Product" class="product-thumb">
+          <div class="product-details">
+            <div id="productName" class="product-name">Machenike K500 Tri-Mode Wireless Mechanical Keyboard RGB (Shopee Mall ID)</div>
+            <div id="productPrice" class="product-price-badge">Rp 689.000</div>
+            <div class="product-rating-row">
+              <span id="productRatingScore" style="color: #fbbf24; font-weight: 700;">4.9 ★</span>
+              <span id="productTotalReviews" class="text-muted">(4,850 ratings on Shopee ID)</span>
+            </div>
+            <a id="productUrlLink" href="#" target="_blank" class="btn-secondary" style="width: fit-content; margin-top: 0.35rem; padding: 0.3rem 0.6rem; font-size: 0.75rem;">
+              <i class="ph ph-arrow-square-out"></i> Open Original Page
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Rating Breakdown Analytics Bento Card -->
+      <div class="bento-card">
+        <div class="bento-title">
+          <i class="ph ph-chart-bar"></i> Ratings Breakdown & Sentiment
+        </div>
+        <div class="rating-breakdown-container">
+          <div class="overall-score-box">
+            <div id="overallScoreNumber" class="overall-number">4.9</div>
+            <div class="overall-stars">
+              <i class="ph ph-star-fill"></i>
+              <i class="ph ph-star-fill"></i>
+              <i class="ph ph-star-fill"></i>
+              <i class="ph ph-star-fill"></i>
+              <i class="ph ph-star-fill"></i>
+            </div>
+            <div id="overallTotalText" class="overall-total">12 scraped reviews</div>
+          </div>
+
+          <div id="ratingBarsList" class="rating-bars">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- Reviews Explorer Section -->
+    <section class="reviews-section">
+      
+      <div class="section-header">
+        <div class="section-title">
+          <i class="ph ph-chats-circle"></i> Customer Comments & Reviews
+          <span id="reviewsCountBadge" class="badge-counter">0 / 0</span>
+        </div>
+
+        <!-- Export Toolbar -->
+        <div style="display: flex; gap: 0.5rem;">
+          <button id="btnExportCsv" class="btn-secondary">
+            <i class="ph ph-file-csv"></i> Export CSV
+          </button>
+          <button id="btnExportJson" class="btn-secondary">
+            <i class="ph ph-file-code"></i> Export JSON
+          </button>
+          <button id="btnCopyJson" class="btn-secondary" title="Copy dataset JSON to clipboard">
+            <i class="ph ph-copy"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Filter & Search Toolbar -->
+      <div class="filter-toolbar">
+        <div class="search-input-wrapper">
+          <i class="ph ph-magnifying-glass search-icon"></i>
+          <input type="text" id="reviewSearchInput" class="search-input" placeholder="Search keywords in reviews, buyer name, or variation...">
+        </div>
+
+        <select id="starFilterSelect" class="filter-select">
+          <option value="">All Ratings</option>
+          <option value="5">5 Stars only</option>
+          <option value="4">4 Stars only</option>
+          <option value="3">3 Stars only</option>
+          <option value="2">2 Stars only</option>
+          <option value="1">1 Star only</option>
+        </select>
+
+        <select id="variationFilterSelect" class="filter-select">
+          <option value="">All Variations</option>
+        </select>
+
+        <select id="sortSelect" class="filter-select">
+          <option value="recent">Sort: Most Recent</option>
+          <option value="highest">Sort: Highest Rating</option>
+          <option value="lowest">Sort: Lowest Rating</option>
+          <option value="likes">Sort: Most Helpful Votes</option>
+        </select>
+
+        <label class="option-toggle" style="margin-top: 0; font-size: 0.8rem;">
+          <input type="checkbox" id="replyOnlyToggle">
+          <span>Seller Replied</span>
+        </label>
+
+        <label class="option-toggle" style="margin-top: 0; font-size: 0.8rem;">
+          <input type="checkbox" id="mediaOnlyToggle">
+          <span>Has Photos/Video</span>
+        </label>
+      </div>
+
+      <!-- Reviews Feed List -->
+      <div id="reviewsContainer" class="reviews-list">
+        <!-- Rendered by JS -->
+      </div>
+
+      <!-- Pagination -->
+      <div class="pagination-bar">
+        <div id="paginationInfo" style="font-size: 0.85rem; color: var(--text-muted);">Showing 1-10 of 12</div>
+        <div id="paginationControls" class="page-controls">
+          <!-- Rendered by JS -->
+        </div>
+      </div>
+
+    </section>
+
+    <!-- Live Execution Terminal Drawer -->
+    <section class="terminal-card">
+      <div class="terminal-bar">
+        <div class="terminal-dots">
+          <div class="dot dot-red"></div>
+          <div class="dot dot-yellow"></div>
+          <div class="dot dot-green"></div>
+        </div>
+        <div class="terminal-title">
+          <i class="ph ph-terminal-window"></i> Live Scraper Process & Execution Stream
+        </div>
+        <div style="display: flex; gap: 0.4rem;">
+          <button id="btnClearLogs" class="btn-secondary" style="padding: 0.2rem 0.5rem; font-size: 0.75rem;">Clear</button>
+          <button id="btnToggleTerminal" class="btn-secondary" style="padding: 0.2rem 0.5rem; font-size: 0.75rem;">Toggle</button>
+        </div>
+      </div>
+      <div id="terminalBody" class="terminal-body">
+        <div id="terminalLogs">
+          <div class="log-line log-info">[READY] Shopee Scraper Engine ready. Enter a URL above and click Start Live Scraping.</div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Image Lightbox Modal -->
+  <div id="lightboxModal" class="modal-backdrop">
+    <div class="modal-content">
+      <button id="lightboxClose" class="modal-close"><i class="ph ph-x"></i></button>
+      <img id="lightboxImg" src="" alt="Full view">
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- Application Script -->
+  <script src="/static/shopee.js"></script>
+</body>
+</html>
